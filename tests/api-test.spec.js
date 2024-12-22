@@ -1,18 +1,17 @@
 const { test, expect } = require("@playwright/test");
-const { Ajv } = require("ajv");
+const Ajv = require("ajv");
 
-const ajv = new Ajv()
+const ajv = new Ajv();
 
 //GET
 test("Test Case 1", async ({ request }) => {
-    
     const response = await request.get('https://reqres.in/api/users/2');
-    expect(response.status()).toBe(200)
+    expect(response.status()).toBe(200);
 
-    const responseData = await response.json()
+    const responseData = await response.json();
 
-    expect(responseData.data.id).toBe(2)
-    expect(responseData.data.first_name).toBe("Janet")
+    expect(responseData.data.id).toBe(2);
+    expect(responseData.data.first_name).toBe("Janet");
 
     const valid = ajv.validate(require('./jsonschema/get-object-schema1.json'), responseData)
 
@@ -24,9 +23,8 @@ test("Test Case 1", async ({ request }) => {
 
 });
 
-//POST
+// POST
 test("Test Case 2", async ({ request }) => {
-
     const bodyData = {
         "name": "morpheus",
         "job": "leader"
@@ -45,17 +43,25 @@ test("Test Case 2", async ({ request }) => {
     expect(response.status()).toBe(201); 
 
     const responseBody = await response.json();
-    expect(responseBody.job).toBe("leader"); 
-    expect(responseBody.name).toBe("morpheus"); 
+    expect(responseBody.job).toBe("leader");
+    expect(responseBody.name).toBe("morpheus");
 
     console.log(responseBody); 
+
+    const valid = ajv.validate(require('./jsonschema/get-object-schema2.json'), responseBody);
+
+    if (!valid) {
+        console.error("AJV Validation Errors:", ajv.errorsText());
+    }
+
+    expect(valid).toBe(true); 
 });
 
 
 //DELETE
 test("Test Case 3", async ({ request }) => {
-    
     const url = 'https://reqres.in/api/users/2'; 
+
     const response = await request.delete(url);
 
     expect(response.status()).toBe(204);
@@ -69,13 +75,7 @@ test("Test Case 3", async ({ request }) => {
     }
 
     if (responseBody) {
-        const responseSchema = {
-            type: "object",
-            properties: {
-                message: { type: "string" }
-            },
-            required: ["message"]
-        };
+        const responseSchema = require('./jsonschema/get-object-schema3.json');
 
         const valid = ajv.validate(responseSchema, responseBody);
 
@@ -84,18 +84,20 @@ test("Test Case 3", async ({ request }) => {
         }
 
         expect(valid).toBe(true);
-    } else {
 
+        expect(responseBody).toHaveProperty("message");
+        expect(responseBody.message).toBe("User deleted successfully");
+    } else {
         console.log("Skipping JSON Schema validation due to no response body.");
     }
 });
 
+
 //PUT
 test("Test Case 4", async ({ request }) => {
-
     const bodyData = {
-            "name": "morpheus",
-            "job": "zion resident"
+        "name": "morpheus",
+        "job": "zion resident"
     };
 
     const headerData = {
@@ -107,12 +109,23 @@ test("Test Case 4", async ({ request }) => {
         headers: headerData,
         data: bodyData
     });
-   
-    expect(response.status()).toBe(200); 
+
+    expect(response.status()).toBe(200);
 
     const responseBody = await response.json();
-    expect(responseBody).toHaveProperty("job"); 
-    expect(responseBody.name).toBe("morpheus"); 
 
-    console.log(responseBody); 
+    expect(responseBody).toHaveProperty("job");
+    expect(responseBody.name).toBe("morpheus");
+
+    console.log(responseBody);
+
+    const responseSchema = require('./jsonschema/get-object-schema4.json');
+
+    const valid = ajv.validate(responseSchema, responseBody);
+
+    if (!valid) {
+        console.error("AJV Validation Errors:", ajv.errorsText());
+    }
+
+    expect(valid).toBe(true);
 });
